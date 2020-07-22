@@ -224,7 +224,7 @@ def main():
     destination_folder_name = clean_folder_name(args.destination_folder_name)
     source_file_name_match_type = args.source_file_name_match_type
     s3_config = args.s3_config
-    extra_args = args.s3_extra_args
+    extra_args = args.extra_args
 
     s3_connection = connect_to_s3(s3_config)
 
