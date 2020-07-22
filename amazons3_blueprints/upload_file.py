@@ -53,6 +53,10 @@ def get_args():
         '--aws-default-region',
         dest='aws_default_region',
         required=False)
+    parser.add_argument(
+        '--extra-args',
+        dest='extra_args',
+        required=False)
     return parser.parse_args()
 
 
