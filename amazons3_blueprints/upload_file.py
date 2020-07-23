@@ -5,6 +5,7 @@ from botocore.client import Config
 import re
 import argparse
 import glob
+from ast import literal_eval
 
 
 def get_args():
@@ -13,10 +14,11 @@ def get_args():
     parser.add_argument(
         '--source-file-name-match-type',
         dest='source_file_name_match_type',
+        default='exact_match',
         choices={
             'exact_match',
             'regex_match'},
-        required=True)
+        required=False)
     parser.add_argument(
         '--source-file-name',
         dest='source_file_name',
@@ -224,7 +226,7 @@ def main():
     destination_folder_name = clean_folder_name(args.destination_folder_name)
     source_file_name_match_type = args.source_file_name_match_type
     s3_config = args.s3_config
-    extra_args = args.extra_args
+    extra_args = literal_eval(args.extra_args if args.extra_args else '{}')
 
     s3_connection = connect_to_s3(s3_config)
 
