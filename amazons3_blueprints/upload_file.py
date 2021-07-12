@@ -176,8 +176,8 @@ def find_all_local_file_names(source_folder_name):
     filtered by source_folder_name if provided.
     """
     cwd = os.getcwd()
-    cwd_extension = os.path.normpath(f'{cwd}/{source_folder_name}/*')
-    file_names = glob.glob(cwd_extension)
+    cwd_extension = os.path.normpath(f'{cwd}/{source_folder_name}/**')
+    file_names = glob.glob(cwd_extension, recursive=True)
     return file_names
 
 
@@ -217,6 +217,7 @@ def upload_s3_file(
 
 def main():
     args = get_args()
+    set_environment_variables(args)
     bucket_name = args.bucket_name
     source_file_name = args.source_file_name
     source_folder_name = args.source_folder_name
@@ -234,14 +235,15 @@ def main():
         file_names = find_all_local_file_names(source_folder_name)
         matching_file_names = find_all_file_matches(
             file_names, re.compile(source_file_name))
-        print(f'{len(matching_file_names)} files found. Preparing to upload...')
+        num_matches = len(matching_file_names)
+        print(f'{num_matches} files found. Preparing to upload...')
 
         for index, key_name in enumerate(matching_file_names):
             destination_full_path = determine_destination_full_path(
                 destination_folder_name=destination_folder_name,
                 destination_file_name=args.destination_file_name,
                 source_full_path=key_name,
-                file_number=index + 1)
+                file_number=None if num_matches == 1 else index + 1)
             print(f'Uploading file {index+1} of {len(matching_file_names)}')
             upload_s3_file(
                 source_full_path=key_name,
