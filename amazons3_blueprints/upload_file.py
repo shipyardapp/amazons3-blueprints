@@ -6,6 +6,7 @@ import re
 import argparse
 import glob
 from ast import literal_eval
+import sys
 
 
 def get_args():
@@ -236,7 +237,12 @@ def main():
         matching_file_names = find_all_file_matches(
             file_names, re.compile(source_file_name))
         num_matches = len(matching_file_names)
-        print(f'{num_matches} files found. Preparing to upload...')
+
+        if num_matches == 0:
+            print(f'No matches found for regex {source_file_name}')
+            sys.exit(1)
+        else:
+            print(f'{num_matches} files found. Preparing to upload...')
 
         for index, key_name in enumerate(matching_file_names):
             destination_full_path = determine_destination_full_path(
