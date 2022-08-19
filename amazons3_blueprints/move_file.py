@@ -7,6 +7,7 @@ import argparse
 import glob
 from ast import literal_eval
 import sys
+import shipyard_utils as shipyard
 
 
 def get_args():
@@ -30,6 +31,11 @@ def get_args():
         default='',
         required=False)
     parser.add_argument(
+        '--source-bucket-name',
+        dest='source_bucket_name',
+        default='',
+        required=True)
+    parser.add_argument(
         '--destination-folder-name',
         dest='destination_folder_name',
         default='',
@@ -39,6 +45,11 @@ def get_args():
         dest='destination_file_name',
         default=None,
         required=False)
+    parser.add_argument(
+        '--destination-bucket-name',
+        dest='destination_bucket_name',
+        default='',
+        required=True)
     parser.add_argument(
         '--s3-config',
         dest='s3_config',
@@ -56,8 +67,36 @@ def get_args():
         '--aws-default-region',
         dest='aws_default_region',
         required=False)
+    
     return parser.parse_args()
 
+
+def set_environment_variables(args):
+    """
+    Set AWS credentials as environment variables if they're provided via keyword arguments
+    rather than seeded as environment variables. This will override system defaults.
+    """
+
+    if args.aws_access_key_id:
+        os.environ['AWS_ACCESS_KEY_ID'] = args.aws_access_key_id
+    if args.aws_secret_access_key:
+        os.environ['AWS_SECRET_ACCESS_KEY'] = args.aws_secret_access_key
+    if args.aws_default_region:
+        os.environ['AWS_DEFAULT_REGION'] = args.aws_default_region
+    return
+
+
+def s3_list_files(
+        s3_connection,
+        bucket_name,
+        source_folder,
+        ):
+    """List files in s3"""
+    s3_response = s3_connection.list_objects_v2(Bucket=bucket_name, Prefix=source_folder)
+    files_list =  [
+        _file['Key'] for _file in s3_response['Contents']
+    ]
+    return files_list
 
 
 def connect_to_s3(access_key_id, secret_access_key, default_region=None):
@@ -93,32 +132,41 @@ def move_s3_file(
         'Key': source_full_path
     }
 
-    bucket = s3.Bucket(destination_bucket_name)
+    bucket = s3_connection.Bucket(destination_bucket_name)
     bucket.copy(copy_source, destination_full_path)
 
-    s3.Object(source_bucket_name, source_full_path).delete()
+    s3_connection.Object(source_bucket_name, source_full_path).delete()
 
-    print(f'{source_full_path} successfully uploaded to {bucket_name}/{destination_full_path}')
+    print(f'{source_full_path} successfully uploaded to {destination_bucket_name}/{destination_full_path}')
 
 
 def main():
     args = get_args()
     set_environment_variables(args)
-    bucket_name = args.bucket_name
     source_file_name = args.source_file_name
     source_folder_name = args.source_folder_name
-    source_full_path = combine_folder_and_file_name(
+    source_full_path = shipyard.files.combine_folder_and_file_name(
                             source_folder_name,
                             source_file_name)
-    destination_folder_name = clean_folder_name(args.destination_folder_name)
+    destination_folder_name = shipyard.files.clean_folder_name(args.destination_folder_name)
     source_file_name_match_type = args.source_file_name_match_type
-    s3_config = args.s3_config
+    # get arguments from OS environment
+    aws_access_key_id = os.environ['AWS_ACCESS_KEY_ID']
+    aws_secret_access_key = os.environ['AWS_SECRET_ACCESS_KEY']
+    aws_default_region = os.environ['AWS_DEFAULT_REGION']
+    source_bucket_name = args.source_bucket_name
+    destination_bucket_name = args.destination_bucket_name
 
-    s3_connection = connect_to_s3(s3_config)
+    s3_connection = connect_to_s3(
+        aws_access_key_id, 
+        aws_secret_access_key, 
+        aws_default_region
+        )
 
     if source_file_name_match_type == 'regex_match':
-        file_names = find_all_local_file_names(source_folder_name)
-        matching_file_names = find_all_file_matches(
+        file_names = s3_list_files(
+            s3_connection, source_bucket_name, source_folder_name)
+        matching_file_names = shipyard.files.find_all_file_matches(
             file_names, re.compile(source_file_name))
         num_matches = len(matching_file_names)
 
@@ -129,30 +177,26 @@ def main():
             print(f'{num_matches} files found. Preparing to upload...')
 
         for index, key_name in enumerate(matching_file_names):
-            destination_full_path = determine_destination_full_path(
-                destination_folder_name=destination_folder_name,
-                destination_file_name=args.destination_file_name,
-                source_full_path=key_name,
-                file_number=None if num_matches == 1 else index + 1)
-            print(f'Uploading file {index+1} of {len(matching_file_names)}')
-            upload_s3_file(
-                source_full_path=key_name,
-                destination_full_path=destination_full_path,
-                bucket_name=bucket_name,
-                extra_args=extra_args,
-                s3_connection=s3_connection)
+            destination_full_path = shipyard.files.combine_folder_and_file_name(
+                destination_folder_name, key_name
+            )
+            print(f'Moving file {index+1} of {len(matching_file_names)}')
+            move_s3_file(
+                    s3_connection,
+                    source_bucket_name,
+                    destination_bucket_name,
+                    source_full_path,
+                    destination_full_path
+            )
 
     else:
-        destination_full_path = determine_destination_full_path(
-            destination_folder_name=destination_folder_name,
-            destination_file_name=args.destination_file_name,
-            source_full_path=source_full_path)
-        upload_s3_file(
-            source_full_path=source_full_path,
-            destination_full_path=destination_full_path,
-            bucket_name=bucket_name,
-            extra_args=extra_args,
-            s3_connection=s3_connection)
+        move_s3_file(
+            s3_connection,
+            source_bucket_name,
+            destination_bucket_name,
+            source_full_path,
+            destination_full_path
+        )
 
 
 if __name__ == '__main__':
