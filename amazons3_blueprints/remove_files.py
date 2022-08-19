@@ -30,16 +30,6 @@ def get_args():
         default='',
         required=False)
     parser.add_argument(
-        '--destination-folder-name',
-        dest='destination_folder_name',
-        default='',
-        required=False)
-    parser.add_argument(
-        '--destination-file-name',
-        dest='destination_file_name',
-        default=None,
-        required=False)
-    parser.add_argument(
         '--s3-config',
         dest='s3_config',
         default=None,
@@ -55,10 +45,6 @@ def get_args():
     parser.add_argument(
         '--aws-default-region',
         dest='aws_default_region',
-        required=False)
-    parser.add_argument(
-        '--extra-args',
-        dest='extra_args',
         required=False)
     return parser.parse_args()
 
@@ -88,13 +74,23 @@ def connect_to_s3(s3_config=None):
     )
     return s3_connection
 
+def s3_list_files(
+        s3_connection,
+        bucket_name,
+        source_folder,
+        ):
+    """List files in s3"""
+    s3_response = s3_connection.list_objects_v2(Bucket=bucket_name, Prefix=source_folder)
+    files_list =  [
+        _file['Key'] for _file in s3_response['Contents']
+    ]
+    return files_list
 
 
-def remove_file(
+def remove_s3_file(
         s3_connection,
         bucket_name,
         source_full_path,
-        destination_full_path,
         ):
     """
     Uploads a single file to S3. Uses the s3.transfer method to ensure that files larger than 5GB are split up during the upload process.
@@ -102,14 +98,12 @@ def remove_file(
     Extra Args can be found at https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-uploading-files.html#the-extraargs-parameter
     and are commonly used for custom file encryption or permissions.
     """
-    s3_upload_config = boto3.s3.transfer.TransferConfig()
-    s3_transfer = boto3.s3.transfer.S3Transfer(
-        client=s3_connection, config=s3_upload_config)
+    s3_response = s3_connection.delete_object(
+        Bucket=bucket_name,
+        Key=source_full_path
+    )
 
-    s3_transfer.upload_file(source_full_path, bucket_name,
-                            destination_full_path, extra_args=extra_args)
-
-    print(f'{source_full_path} successfully uploaded to {bucket_name}/{destination_full_path}')
+    print(f'{source_full_path} successfully deleted')
 
 
 def main():
@@ -117,18 +111,18 @@ def main():
     set_environment_variables(args)
     bucket_name = args.bucket_name
     source_file_name = args.source_file_name
-    source_folder_name = args.source_folder_name
+    source_folder_name = shipyard.files.clean_folder_name(args.source_folder_name)
     source_full_path = shipyard.files.combine_folder_and_file_name(
-        folder_name=f'{os.getcwd()}/{source_folder_name}',
-        file_name=source_file_name)
-    destination_folder_name = shipyard.files.clean_folder_name(args.destination_folder_name)
+        source_folder_name, source_file_name
+    )
     source_file_name_match_type = args.source_file_name_match_type
     s3_config = args.s3_config
 
     s3_connection = connect_to_s3(s3_config)
 
     if source_file_name_match_type == 'regex_match':
-        file_names = shipyard.files.find_all_local_file_names(source_folder_name)
+        file_names = s3_list_files(
+            s3_connection, bucket_name, source_folder_name)
         matching_file_names = shipyard.files.find_all_file_matches(
             file_names, re.compile(source_file_name))
         num_matches = len(matching_file_names)
@@ -140,30 +134,19 @@ def main():
             print(f'{num_matches} files found. Preparing to upload...')
 
         for index, key_name in enumerate(matching_file_names):
-            destination_full_path = determine_destination_full_path(
-                destination_folder_name=destination_folder_name,
-                destination_file_name=args.destination_file_name,
+            print(f'Removing file {index+1} of {len(matching_file_names)}')
+            remove_s3_file(
                 source_full_path=key_name,
-                file_number=None if num_matches == 1 else index + 1)
-            print(f'Uploading file {index+1} of {len(matching_file_names)}')
-            upload_s3_file(
-                source_full_path=key_name,
-                destination_full_path=destination_full_path,
                 bucket_name=bucket_name,
-                extra_args=extra_args,
-                s3_connection=s3_connection)
+                s3_connection=s3_connection
+            )
 
     else:
-        destination_full_path = determine_destination_full_path(
-            destination_folder_name=destination_folder_name,
-            destination_file_name=args.destination_file_name,
-            source_full_path=source_full_path)
-        upload_s3_file(
+        remove_s3_file(
             source_full_path=source_full_path,
-            destination_full_path=destination_full_path,
             bucket_name=bucket_name,
-            extra_args=extra_args,
-            s3_connection=s3_connection)
+            s3_connection=s3_connection
+        )
 
 
 if __name__ == '__main__':
