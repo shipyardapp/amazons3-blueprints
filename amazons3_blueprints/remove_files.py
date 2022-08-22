@@ -103,7 +103,7 @@ def remove_s3_file(
         Key=source_full_path
     )
 
-    print(f'{source_full_path} successfully deleted')
+    print(f'{source_full_path} delete function successful')
 
 
 def main():
