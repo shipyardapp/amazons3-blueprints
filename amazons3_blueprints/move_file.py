@@ -190,6 +190,10 @@ def main():
             )
 
     else:
+        destination_file_name = args.destination_file_name
+        destination_full_path = shipyard.files.combine_folder_and_file_name(
+            destination_folder_name, destination_file_name
+        )
         move_s3_file(
             s3_connection,
             source_bucket_name,
