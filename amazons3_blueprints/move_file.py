@@ -133,12 +133,16 @@ def move_s3_file(
     }
 
     bucket = s3_connection.Bucket(destination_bucket_name)
-    bucket.copy(copy_source, destination_full_path)
+    try: 
+        bucket.copy(copy_source, destination_full_path)
 
-    s3_connection.Object(source_bucket_name, source_full_path).delete()
+        s3_connection.Object(source_bucket_name, source_full_path).delete()
 
-    print(f'{source_full_path} successfully uploaded to {destination_bucket_name}/{destination_full_path}')
-
+        print(f'{source_full_path} successfully uploaded to {destination_bucket_name}/{destination_full_path}')
+    except Exception as e:
+        print(f"An error occured {e}.") 
+        print(f"The file {source_bucket_name}/{source_full_path} could not be found")
+        sys.exit(1)
 
 def main():
     args = get_args()
