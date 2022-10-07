@@ -12,7 +12,6 @@ import shipyard_utils as shipyard
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--bucket-name', dest='bucket_name', required=True)
     parser.add_argument(
         '--source-file-name-match-type',
         dest='source_file_name_match_type',
@@ -50,11 +49,6 @@ def get_args():
         dest='destination_bucket_name',
         default='',
         required=True)
-    parser.add_argument(
-        '--s3-config',
-        dest='s3_config',
-        default=None,
-        required=False)
     parser.add_argument(
         '--aws-access-key-id',
         dest='aws_access_key_id',
