@@ -98,12 +98,16 @@ def remove_s3_file(
     Extra Args can be found at https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-uploading-files.html#the-extraargs-parameter
     and are commonly used for custom file encryption or permissions.
     """
-    s3_response = s3_connection.delete_object(
-        Bucket=bucket_name,
-        Key=source_full_path
-    )
+    try:
+        s3_response = s3_connection.delete_object(
+            Bucket=bucket_name,
+            Key=source_full_path
+        )
 
-    print(f'{source_full_path} delete function successful')
+        print(f'{source_full_path} delete function successful')
+    except Exception as e:
+        print(f"Error: {source_full_path} not found.")
+        sys.exit(1)
 
 
 def main():
@@ -131,7 +135,7 @@ def main():
             print(f'No matches found for regex {source_file_name}')
             sys.exit(1)
         else:
-            print(f'{num_matches} files found. Preparing to upload...')
+            print(f'{num_matches} files found. Preparing to remove...')
 
         for index, key_name in enumerate(matching_file_names):
             print(f'Removing file {index+1} of {len(matching_file_names)}')
