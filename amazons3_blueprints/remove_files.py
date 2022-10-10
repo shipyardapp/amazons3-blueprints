@@ -9,6 +9,7 @@ from ast import literal_eval
 import sys
 import shipyard_utils as shipyard
 
+
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--bucket-name', dest='bucket_name', required=True)
@@ -73,6 +74,7 @@ def connect_to_s3(s3_config=None):
         config=Config(s3_config)
     )
     return s3_connection
+
 
 def s3_list_files(
         s3_connection,
