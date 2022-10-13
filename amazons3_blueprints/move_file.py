@@ -8,7 +8,10 @@ import glob
 from ast import literal_eval
 import sys
 import shipyard_utils as shipyard
-
+try:
+    import exit_codes as ec
+except BaseException:
+    from . import exit_codes as ec
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -97,14 +100,19 @@ def connect_to_s3(access_key_id, secret_access_key, default_region=None):
     """
     Create a connection to the S3 service using credentials provided as environment variables.
     """
-    session = boto3.Session(
-        aws_access_key_id=access_key_id,
-        aws_secret_access_key=secret_access_key,
-        region_name=default_region
-    )
+    try:
+        session = boto3.Session(
+            aws_access_key_id=access_key_id,
+            aws_secret_access_key=secret_access_key,
+            region_name=default_region
+        )
 
-    s3_connection = session.resource('s3')
-    return s3_connection
+        s3_connection = session.resource('s3')
+        return s3_connection
+    except Exception as e:
+        print("Error: Could not connect to S3. Ensure that the provided access key, secret key, and region are correct")
+        print(e)
+        sys.exit(ec.EXIT_CODE_INVALID_CREDENTIALS)
 
 
 def move_s3_file(
@@ -136,7 +144,7 @@ def move_s3_file(
     except Exception as e:
         print(f"An error occured {e}.") 
         print(f"The file {source_bucket_name}/{source_full_path} could not be found")
-        sys.exit(1)
+        sys.exit(ec.EXIT_CODE_FILE_NOT_FOUND)
 
 def main():
     args = get_args()

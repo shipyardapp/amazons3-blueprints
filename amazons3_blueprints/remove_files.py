@@ -8,6 +8,10 @@ import glob
 from ast import literal_eval
 import sys
 import shipyard_utils as shipyard
+try:
+    import exit_codes as ec
+except BaseException:
+    from . import exit_codes as ec
 
 
 def get_args():
@@ -69,11 +73,16 @@ def connect_to_s3(s3_config=None):
     """
     Create a connection to the S3 service using credentials provided as environment variables.
     """
-    s3_connection = boto3.client(
-        's3',
-        config=Config(s3_config)
-    )
-    return s3_connection
+    try:
+        s3_connection = boto3.client(
+            's3',
+            config=Config(s3_config)
+        )
+        return s3_connection
+    except Exception as e:
+        print("Error: Could not connect to S3. Ensure that the provided access key, secret key, and region are correct")
+        print(e)
+        sys.exit(ec.EXIT_CODE_INVALID_CREDENTIALS)
 
 
 def s3_list_files(
@@ -109,7 +118,7 @@ def remove_s3_file(
         print(f'{source_full_path} delete function successful')
     except Exception as e:
         print(f"Error: {source_full_path} not found.")
-        sys.exit(1)
+        sys.exit(ec.EXIT_CODE_FILE_NOT_FOUND)
 
 
 def main():
