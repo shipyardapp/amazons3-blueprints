@@ -117,7 +117,7 @@ def remove_s3_file(
 
         print(f'{source_full_path} delete function successful')
     except Exception as e:
-        print(f"Error: {source_full_path} not found.")
+        print(f"Error: {source_full_path} not found in bucket {bucket_name}.")
         sys.exit(ec.EXIT_CODE_FILE_NOT_FOUND)
 
 
