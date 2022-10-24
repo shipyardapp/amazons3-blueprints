@@ -89,11 +89,15 @@ def s3_list_files(
         source_folder,
         ):
     """List files in s3"""
-    s3_response = s3_connection.list_objects_v2(Bucket=bucket_name, Prefix=source_folder)
-    files_list =  [
-        _file['Key'] for _file in s3_response['Contents']
-    ]
-    return files_list
+    try:
+        s3_response = s3_connection.list_objects_v2(Bucket=bucket_name, Prefix=source_folder)
+        files_list =  [
+            _file['Key'] for _file in s3_response['Contents']
+        ]
+        return files_list
+    except: 
+        print(f"There was an error locating the files. Either the bucket does not exist or the folder does not exist. Please ensure that both are correct.")
+        sys.exit(ec.EXIT_CODE_FILE_NOT_FOUND)
 
 
 def connect_to_s3(access_key_id, secret_access_key, default_region=None):
@@ -182,11 +186,17 @@ def main():
         else:
             print(f'{num_matches} files found. Preparing to upload...')
 
-        for index, key_name in enumerate(matching_file_names):
-            destination_full_path = shipyard.files.combine_folder_and_file_name(
-                destination_folder_name, key_name
+        for index, key_name in enumerate(matching_file_names,1):
+            destination_full_path = shipyard.files.determine_destination_full_path(
+                destination_folder_name = destination_folder_name,
+                destination_file_name = key_name,
+                source_full_path = source_full_path,
+                file_number= index
             )
-            print(f'Moving file {index+1} of {len(matching_file_names)}')
+            # destination_full_path = shipyard.files.combine_folder_and_file_name(
+            #     destination_folder_name, key_name
+            # )
+            print(f'Moving file {index} of {len(matching_file_names)}')
             move_s3_file(
                     s3_connection,
                     source_bucket_name,
@@ -197,9 +207,15 @@ def main():
 
     else:
         destination_file_name = args.destination_file_name
-        destination_full_path = shipyard.files.combine_folder_and_file_name(
-            destination_folder_name, destination_file_name
+        destination_full_path = shipyard.files.determine_destination_full_path(
+            destination_folder_name = destination_folder_name,
+            destination_file_name = destination_file_name,
+            source_full_path = source_full_path
         )
+        # destination_full_path = shipyard.files.combine_folder_and_file_name(
+        #     destination_folder_name, destination_file_name
+        # )
+
         move_s3_file(
             s3_connection,
             source_bucket_name,
