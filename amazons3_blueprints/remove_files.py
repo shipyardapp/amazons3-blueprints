@@ -73,16 +73,11 @@ def connect_to_s3(s3_config=None):
     """
     Create a connection to the S3 service using credentials provided as environment variables.
     """
-    try:
-        s3_connection = boto3.client(
-            's3',
-            config=Config(s3_config)
-        )
-        return s3_connection
-    except Exception as e:
-        print("Error: Could not connect to S3. Ensure that the provided access key, secret key, and region are correct")
-        print(e)
-        sys.exit(ec.EXIT_CODE_INVALID_CREDENTIALS)
+    s3_connection = boto3.client(
+        's3',
+        config=Config(s3_config)
+    )
+    return s3_connection
 
 
 def s3_list_files(
@@ -91,13 +86,11 @@ def s3_list_files(
         source_folder,
         ):
     """List files in s3"""
-    try:
-        bucket = s3_connection.Bucket(bucket_name)
-        files_list = [obj.key for obj in bucket.objects.filter(Prefix = source_folder)]
-        return files_list
-    except: 
-        print(f"There was an error locating the files. Either the bucket does not exist or the folder does not exist. Please ensure that both are correct.")
-        sys.exit(ec.EXIT_CODE_FILE_NOT_FOUND)
+    s3_response = s3_connection.list_objects_v2(Bucket=bucket_name, Prefix=source_folder)
+    files_list =  [
+        _file['Key'] for _file in s3_response['Contents']
+    ]
+    return files_list
 
 
 def remove_s3_file(
