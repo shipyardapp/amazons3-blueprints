@@ -211,7 +211,7 @@ def main():
                         s3_connection,
                         source_bucket_name,
                         destination_bucket_name,
-                        source_full_path,
+                        key_name,
                         destination_full_path
                 )
         except Exception as e:
