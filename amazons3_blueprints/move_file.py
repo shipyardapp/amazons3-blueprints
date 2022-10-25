@@ -196,7 +196,7 @@ def main():
 
         try:
             for index, key_name in enumerate(matching_file_names,1):
-                dest_file_name = shipyard.files.determine_destination_file_name(source_full_path = source_full_path,destination_file_name = None)
+                dest_file_name = shipyard.files.determine_destination_file_name(source_full_path = key_name,destination_file_name = None)
                 destination_full_path = shipyard.files.determine_destination_full_path(
                     destination_folder_name = destination_folder_name,
                     destination_file_name = dest_file_name,
