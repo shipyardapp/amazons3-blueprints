@@ -179,6 +179,8 @@ def main():
     if source_file_name_match_type == 'regex_match':
         file_names = s3_list_files(
             s3_connection, source_bucket_name, source_folder_name)
+        print(file_names)
+        print(source_file_name)
         matching_file_names = shipyard.files.find_all_file_matches(
             file_names, source_file_name)
         num_matches = len(matching_file_names)
