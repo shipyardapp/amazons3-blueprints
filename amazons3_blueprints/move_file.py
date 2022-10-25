@@ -179,36 +179,37 @@ def main():
     if source_file_name_match_type == 'regex_match':
         file_names = s3_list_files(
             s3_connection, source_bucket_name, source_folder_name)
-        print(file_names)
-        print(source_file_name)
-        matching_file_names = shipyard.files.find_all_file_matches(
-            file_names, source_file_name)
-        num_matches = len(matching_file_names)
+        try:
+            matching_file_names = shipyard.files.find_all_file_matches(
+                file_names, source_file_name)
+            num_matches = len(matching_file_names)
+            if num_matches == 0:
+                print(f'No matches found for regex {source_file_name}')
+                sys.exit(1)
+            else:
+                print(f'{num_matches} files found. Preparing to upload...')
 
-        if num_matches == 0:
-            print(f'No matches found for regex {source_file_name}')
-            sys.exit(1)
-        else:
-            print(f'{num_matches} files found. Preparing to upload...')
-
-        for index, key_name in enumerate(matching_file_names,1):
-            destination_full_path = shipyard.files.determine_destination_full_path(
-                destination_folder_name = destination_folder_name,
-                destination_file_name = key_name,
-                source_full_path = source_full_path,
-                file_number= index
-            )
-            # destination_full_path = shipyard.files.combine_folder_and_file_name(
-            #     destination_folder_name, key_name
-            # )
-            print(f'Moving file {index} of {len(matching_file_names)}')
-            move_s3_file(
-                    s3_connection,
-                    source_bucket_name,
-                    destination_bucket_name,
-                    source_full_path,
-                    destination_full_path
-            )
+            for index, key_name in enumerate(matching_file_names,1):
+                destination_full_path = shipyard.files.determine_destination_full_path(
+                    destination_folder_name = destination_folder_name,
+                    destination_file_name = key_name,
+                    source_full_path = source_full_path,
+                    file_number= index
+                )
+                # destination_full_path = shipyard.files.combine_folder_and_file_name(
+                #     destination_folder_name, key_name
+                # )
+                print(f'Moving file {index} of {len(matching_file_names)}')
+                move_s3_file(
+                        s3_connection,
+                        source_bucket_name,
+                        destination_bucket_name,
+                        source_full_path,
+                        destination_full_path
+                )
+        except Exception as e:
+            print(f"Error in finding regex matches. Please make sure a valid regex is entered")
+            sys.exit(ec.EXIT_CODE_INVALID_REGEX)
 
     else:
         destination_file_name = args.destination_file_name
