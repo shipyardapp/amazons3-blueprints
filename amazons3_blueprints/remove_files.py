@@ -91,11 +91,13 @@ def s3_list_files(
         source_folder,
         ):
     """List files in s3"""
-    s3_response = s3_connection.list_objects_v2(Bucket=bucket_name, Prefix=source_folder)
-    files_list =  [
-        _file['Key'] for _file in s3_response['Contents']
-    ]
-    return files_list
+    try:
+        bucket = s3_connection.Bucket(bucket_name)
+        files_list = [obj.key for obj in bucket.objects.filter(Prefix = source_folder)]
+        return files_list
+    except: 
+        print(f"There was an error locating the files. Either the bucket does not exist or the folder does not exist. Please ensure that both are correct.")
+        sys.exit(ec.EXIT_CODE_FILE_NOT_FOUND)
 
 
 def remove_s3_file(
@@ -134,13 +136,17 @@ def main():
     s3_config = args.s3_config
 
     s3_connection = connect_to_s3(s3_config)
-
     if source_file_name_match_type == 'regex_match':
         file_names = s3_list_files(
             s3_connection, bucket_name, source_folder_name)
-        matching_file_names = shipyard.files.find_all_file_matches(
-            file_names, re.compile(source_file_name))
-        num_matches = len(matching_file_names)
+        ## exit if there is a regex error
+        try:
+            matching_file_names = shipyard.files.find_all_file_matches(
+                file_names, source_file_name)
+            num_matches = len(matching_file_names)
+        except Exception as e:
+            print(f"Error in finding regex matches. Please make sure a valid regex is entered")
+            sys.exit(ec.EXIT_CODE_INVALID_REGEX)
 
         if num_matches == 0:
             print(f'No matches found for regex {source_file_name}')
@@ -148,13 +154,13 @@ def main():
         else:
             print(f'{num_matches} files found. Preparing to remove...')
 
-        for index, key_name in enumerate(matching_file_names):
-            print(f'Removing file {index+1} of {len(matching_file_names)}')
+        for index, key_name in enumerate(matching_file_names,1):
             remove_s3_file(
                 source_full_path=key_name,
                 bucket_name=bucket_name,
                 s3_connection=s3_connection
             )
+            print(f'Removing file {index} of {len(matching_file_names)}')
 
     else:
         remove_s3_file(
@@ -162,6 +168,33 @@ def main():
             bucket_name=bucket_name,
             s3_connection=s3_connection
         )
+    # if source_file_name_match_type == 'regex_match':
+    #     file_names = s3_list_files(
+    #         s3_connection, bucket_name, source_folder_name)
+    #     matching_file_names = shipyard.files.find_all_file_matches(
+    #         file_names, re.compile(source_file_name))
+    #     num_matches = len(matching_file_names)
+
+    #     if num_matches == 0:
+    #         print(f'No matches found for regex {source_file_name}')
+    #         sys.exit(1)
+    #     else:
+    #         print(f'{num_matches} files found. Preparing to remove...')
+
+    #     for index, key_name in enumerate(matching_file_names):
+    #         print(f'Removing file {index+1} of {len(matching_file_names)}')
+    #         remove_s3_file(
+    #             source_full_path=key_name,
+    #             bucket_name=bucket_name,
+    #             s3_connection=s3_connection
+    #         )
+
+    # else:
+    #     remove_s3_file(
+    #         source_full_path=source_full_path,
+    #         bucket_name=bucket_name,
+    #         s3_connection=s3_connection
+    #     )
 
 
 if __name__ == '__main__':
