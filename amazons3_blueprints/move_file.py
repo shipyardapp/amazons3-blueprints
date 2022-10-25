@@ -90,10 +90,13 @@ def s3_list_files(
         ):
     """List files in s3"""
     try:
-        s3_response = s3_connection.list_objects_v2(Bucket=bucket_name, Prefix=source_folder)
-        files_list =  [
-            _file['Key'] for _file in s3_response['Contents']
-        ]
+        # s3_response = s3_connection.list_objects_v2(Bucket=bucket_name, Prefix=source_folder)
+        # files_list =  [
+        #     _file['Key'] for _file in s3_response['Contents']
+        # ]
+        bucket = s3_connection.Bucket(bucket_name)
+
+        files_list = [obj.key for obj in bucket.objects.filter(Prefix = source_folder)]
         return files_list
     except: 
         print(f"There was an error locating the files. Either the bucket does not exist or the folder does not exist. Please ensure that both are correct.")
