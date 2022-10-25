@@ -190,10 +190,11 @@ def main():
                 print(f'{num_matches} files found. Preparing to upload...')
 
             for index, key_name in enumerate(matching_file_names,1):
+                dest_file_name = shipyard.determine_destination_file_name(source_full_path = source_full_path,destination_file_name = destination_file_name)
                 destination_full_path = shipyard.files.determine_destination_full_path(
                     destination_folder_name = destination_folder_name,
-                    destination_file_name = key_name,
-                    source_full_path = source_full_path,
+                    destination_file_name = dest_file_name,
+                    source_full_path = key_name,
                     file_number= index
                 )
                 # destination_full_path = shipyard.files.combine_folder_and_file_name(
