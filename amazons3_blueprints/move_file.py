@@ -200,8 +200,7 @@ def main():
                 destination_full_path = shipyard.files.determine_destination_full_path(
                     destination_folder_name = destination_folder_name,
                     destination_file_name = dest_file_name,
-                    source_full_path = key_name,
-                    file_number= index
+                    source_full_path = key_name
                 )
                 # destination_full_path = shipyard.files.combine_folder_and_file_name(
                 #     destination_folder_name, key_name
