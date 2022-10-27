@@ -219,7 +219,9 @@ def main():
             sys.exit(1)
 
     else:
-        destination_file_name = args.destination_file_name
+
+        destination_file_name = shipyard.files.determine_destination_file_name(source_full_path= source_full_path, destination_file_name= args.destination_file_name)
+        # destination_file_name = args.destination_file_name
         destination_full_path = shipyard.files.determine_destination_full_path(
             destination_folder_name = destination_folder_name,
             destination_file_name = destination_file_name,
